@@ -625,7 +625,7 @@ export class BattleScene extends Phaser.Scene {
 
       const res = useFogSkill(myBoard, enemyBoard);
       if (res.valid) {
-        SoundFX.playSkillActivate();
+        SoundFX.playSmokeBomb();
         this.combatLogText.setText(
           '🌫️ KÍCH HOẠT SƯƠNG MÙ! Bản đồ quan sát của đối phương bị che khuất trong 2 lượt tới.\nBạn vẫn được bắn lượt này!'
         );
@@ -840,7 +840,11 @@ export class BattleScene extends Phaser.Scene {
       if (aiSkill) {
         const skillRes = executeAISkill(this.p2Board, this.p1Board, aiSkill);
         if (skillRes && skillRes.valid) {
-          SoundFX.playSkillActivate();
+          if (this.p2Board.commanderId === 'FOG') {
+            SoundFX.playSmokeBomb();
+          } else {
+            SoundFX.playSkillActivate();
+          }
           const aiCmd = COMMANDERS[this.p2Board.commanderId];
           this.combatLogText.setText(
             `🤖 Chỉ huy AI [${aiCmd.name}] vừa kích hoạt kỹ năng: ${aiCmd.skillName}!`
@@ -1091,10 +1095,14 @@ export class BattleScene extends Phaser.Scene {
       this.p1Board = payload.myBoard;
       this.p2Board = payload.enemyBoard;
       this.currentTurn = payload.currentTurn;
-      SoundFX.playSkillActivate();
+      const skillName = payload.skillResult?.skill || 'KỸ NĂNG';
+      if (skillName.toUpperCase().includes('SƯƠNG MÙ') || payload.skillResult?.skillType === 'FOG') {
+        SoundFX.playSmokeBomb();
+      } else {
+        SoundFX.playSkillActivate();
+      }
 
       const byMe = payload.byPlayerIndex === this.playerIndex;
-      const skillName = payload.skillResult?.skill || 'KỸ NĂNG';
       this.combatLogText.setText(
         byMe
           ? `⚡ Đã kích hoạt kỹ năng [${skillName}]! Hãy thực hiện phát bắn trên Bản đồ Đối phương.`

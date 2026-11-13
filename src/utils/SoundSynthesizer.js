@@ -20,6 +20,8 @@ class SoundSynthesizer {
     this.samplesLoading = false;
     this.activeVictorySrc = null;
     this.activePhaserVictory = null;
+    this.bgmSound = null;
+    this.bgmVolume = 0.8;
     this.activeVoiceSrc = null;
     this.activePhaserVoice = null;
     this.activeVoiceAudio = null;
@@ -123,6 +125,51 @@ class SoundSynthesizer {
     this.phaserSound = soundManager;
   }
 
+  playBGM() {
+    if (!this.phaserSound || !this.phaserSound.game?.cache?.audio?.exists('bgm_main')) {
+      return;
+    }
+    if (this.bgmSound) {
+      if (!this.bgmSound.isPlaying && !this.muted) {
+        this.bgmSound.play();
+      }
+      return;
+    }
+
+    try {
+      this.bgmSound = this.phaserSound.add('bgm_main', {
+        loop: true,
+        volume: this.bgmVolume
+      });
+      if (this.phaserSound.locked) {
+        this.phaserSound.once('unlocked', () => {
+          if (!this.muted && this.bgmSound && !this.bgmSound.isPlaying) {
+            this.bgmSound.play();
+          }
+        });
+      } else if (!this.muted) {
+        this.bgmSound.play();
+      }
+    } catch (err) {
+      console.warn('[SoundFX] BGM error:', err);
+    }
+  }
+
+  _playPhaserSfx(key, volume = 0.8, rate = 1.0) {
+    if (!this.phaserSound || !this.phaserSound.game?.cache?.audio?.exists(key)) {
+      return false;
+    }
+    try {
+      const snd = this.phaserSound.add(key, { volume, rate });
+      snd.once('complete', () => snd.destroy());
+      snd.play();
+      return true;
+    } catch (err) {
+      console.warn(`[SoundFX] Phaser SFX error (${key}):`, err);
+      return false;
+    }
+  }
+
   toggleMute() {
     this.muted = !this.muted;
     if (this.phaserSound) {
@@ -214,6 +261,11 @@ class SoundSynthesizer {
   playExplosion(big = false) {
     if (this.muted) return;
     this.init();
+
+    if (big && this._playPhaserSfx('sfx_ship_sunk', 0.85)) {
+      return;
+    }
+
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -246,6 +298,11 @@ class SoundSynthesizer {
   playSplash() {
     if (this.muted) return;
     this.init();
+
+    if (this._playPhaserSfx('sfx_water_splash', 0.72)) {
+      return;
+    }
+
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -328,6 +385,15 @@ class SoundSynthesizer {
     });
   }
 
+  playSmokeBomb() {
+    if (this.muted) return;
+    this.init();
+    if (this._playPhaserSfx('sfx_smoke_bomb', 0.82)) {
+      return;
+    }
+    this.playSkillActivate();
+  }
+
   playVictory() {
     if (this.muted) return;
     this.init();
@@ -337,7 +403,11 @@ class SoundSynthesizer {
 
     if (this.phaserSound && this.phaserSound.game?.cache?.audio?.exists('sfx_victory')) {
       try {
+        if (this.bgmSound) this.bgmSound.setVolume(0.25);
         this.activePhaserVictory = this.phaserSound.add('sfx_victory', { volume: 0.45 });
+        this.activePhaserVictory.once('complete', () => {
+          if (this.bgmSound) this.bgmSound.setVolume(this.bgmVolume);
+        });
         this.activePhaserVictory.play();
         return;
       } catch (err) {
@@ -378,6 +448,9 @@ class SoundSynthesizer {
   }
 
   stopVictory() {
+    if (this.bgmSound) {
+      this.bgmSound.setVolume(this.bgmVolume);
+    }
     if (this.activePhaserVictory) {
       try {
         this.activePhaserVictory.stop();

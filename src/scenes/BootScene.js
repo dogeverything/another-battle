@@ -136,8 +136,12 @@ export class BootScene extends Phaser.Scene {
     }
 
     // Load Sound Effects & 15 Commander Voice Lines
+    this.load.audio('bgm_main', '/assets/sound/background.mp3');
     this.load.audio('sfx_cannon_shot', '/assets/sound/cannon_shot.mp3');
     this.load.audio('sfx_victory', '/assets/sound/victory.mp3');
+    this.load.audio('sfx_ship_sunk', '/assets/sound/ship_sunk.mp3');
+    this.load.audio('sfx_smoke_bomb', '/assets/sound/smoke_bomb.mp3');
+    this.load.audio('sfx_water_splash', '/assets/sound/water_splash.mp3');
     for (const cmd of COMMANDER_LIST) {
       const slug = COMMANDER_VOICE_SLUGS[cmd.id] || cmd.id;
       for (const suffix of ['select', 'win', 'lose']) {
@@ -152,6 +156,7 @@ export class BootScene extends Phaser.Scene {
     }
     SoundFX.setSoundManager(this.sound);
     SoundFX.preloadSamples();
+    SoundFX.playBGM();
     this.scene.start('MenuScene');
   }
 }
